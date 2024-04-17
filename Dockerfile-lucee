@@ -1,0 +1,39 @@
+ARG TOMCAT_BASE_IMAGE=tomcat:9.0.87-jdk17-temurin-jammy
+
+FROM docker.io/library/${TOMCAT_BASE_IMAGE}
+
+ARG TOMCAT_DOCBASE=/app
+ARG LUCEE_SERVER_HOME=/opt/lucee/server/lucee-server
+ARG LUCEE_WEB_HOME=/opt/lucee/web
+ARG LUCEE_JAR_URL="https://cdn.lucee.org/lucee-6.0.1.83.jar"
+ARG APPROOT=/usr/local/tomcat/webapps/ROOT
+
+ENV LUCEE_CFML_WRITER=white-space-pref
+ENV LUCEE_PRESERVE_CASE=true
+ENV LUCEE_LISTENER_TYPE=modern
+ENV LUCEE_LISTENER_MODE=root
+ENV LUCEE_EXTENSIONS=60772C12-F179-D555-8E2CD2B4F7428718;verion=3.0.0.51
+
+# Update Debian
+RUN DEBIAN_FRONTEND=noninteractive apt update && \
+  apt upgrade -y && \
+  apt-get install -y --no-install-recommends zip unzip && \
+  rm -rf /var/lib/apt/lists/*
+
+# Link to OpenJDK CA distribution
+RUN mkdir -p "${LUCEE_SERVER_HOME}/context/security" && \
+  ln -s -t "${LUCEE_SERVER_HOME}/context/security" /opt/java/openjdk/lib/security/cacerts
+
+# Prepare Tomcat
+RUN rm -rf /usr/local/tomcat/webapps/*
+COPY --chmod=550 <<'EOF' /usr/local/tomcat/bin/setenv.sh
+: ${LUCEE_JAVA_OPTS:="-Xms64m -Xmx512m"}
+export CATALINA_OPTS="${LUCEE_JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom"
+EOF
+COPY tomcat/ /usr/local/tomcat/conf
+RUN replacement=$(echo ${TOMCAT_DOCBASE} | sed 's/\//\\\//g') && \
+  sed -i "s/TOMCAT_DOCBASE/${replacement}/g" /usr/local/tomcat/conf/server.xml
+
+# Prepare Lucee
+ADD --chmod=444 "${LUCEE_JAR_URL}" /usr/local/tomcat/lib/lucee.jar
+RUN LUCEE_ENABLE_WARMUP=true /usr/local/tomcat/bin/catalina.sh run

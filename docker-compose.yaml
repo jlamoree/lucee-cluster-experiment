@@ -1,0 +1,41 @@
+---
+include:
+  - docker-compose-nginx.yaml
+  - docker-compose-redis.yaml
+services:
+  lucee-01:
+    build:
+      context: .
+      dockerfile: Dockerfile-lucee
+    environment:
+      - NODE_NAME=lucee-01
+    env_file:
+      - .env.redis
+    volumes:
+      - "./app:/app:ro"
+    ports:
+      - "18888:8888"
+  lucee-02:
+    build:
+      context: .
+      dockerfile: Dockerfile-lucee
+    environment:
+      - NODE_NAME=lucee-02
+    env_file:
+      - .env.redis
+    volumes:
+      - "./app:/app:ro"
+    ports:
+      - "18889:8888"
+  lucee-03:
+    build:
+      context: .
+      dockerfile: Dockerfile-lucee
+    environment:
+      - NODE_NAME=lucee-03
+    env_file:
+      - .env.redis
+    volumes:
+      - "./app:/app:ro"
+    ports:
+      - "18890:8888"

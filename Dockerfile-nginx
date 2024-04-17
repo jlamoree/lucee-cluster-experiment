@@ -1,0 +1,8 @@
+FROM docker.io/library/nginx:stable-alpine
+
+ARG WEBHOST=experiment.local
+
+COPY nginx/experiment.conf /etc/nginx/conf.d/default.conf
+
+RUN replacement=$(echo ${WEBHOST} | sed 's/\//\\\//g') && \
+  sed -i "s/WEBHOST/${replacement}/g" /etc/nginx/conf.d/default.conf
